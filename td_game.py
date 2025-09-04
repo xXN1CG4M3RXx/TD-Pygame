@@ -6,7 +6,7 @@ WIDTH, HEIGHT = 1200, 800  # Fenstergröße
 MAP_WIDTH, MAP_HEIGHT = 3000, 2000  # Große Map
 PLAYER_SIZE = 40
 ENEMY_SIZE = 40
-PLAYER_SPEED = 6
+PLAYER_SPEED = 5
 ENEMY_SPEED = 2
 BULLET_SPEED = 12
 FPS = 60
@@ -19,37 +19,39 @@ clock = pygame.time.Clock()
 
 # --- Klassen ---
 class Player(pygame.sprite.Sprite):
-	def __init__(self, x, y):
-		super().__init__()
-		self.image = pygame.Surface((PLAYER_SIZE, PLAYER_SIZE))
-		self.image.fill((0, 200, 255))
-		self.rect = self.image.get_rect(center=(x, y))
-		self.pos = pygame.Vector2(x, y)
-		self.vel = pygame.Vector2(0, 0)
+    def __init__(self, x, y):
+        super().__init__()
+        self.image = pygame.Surface((PLAYER_SIZE, PLAYER_SIZE), pygame.SRCALPHA)
+        self.image.fill((0, 200, 255))
+        pygame.draw.rect(self.image, (255,255,255), self.image.get_rect(), 3)  # Weißer Rand
+        self.rect = self.image.get_rect(center=(x, y))
+        self.pos = pygame.Vector2(x, y)
+        self.vel = pygame.Vector2(0, 0)
 
-	def update(self, keys):
-		self.vel = pygame.Vector2(0, 0)
-		if keys[pygame.K_w]: self.vel.y = -PLAYER_SPEED
-		if keys[pygame.K_s]: self.vel.y = PLAYER_SPEED
-		if keys[pygame.K_a]: self.vel.x = -PLAYER_SPEED
-		if keys[pygame.K_d]: self.vel.x = PLAYER_SPEED
-		self.pos += self.vel
-		self.pos.x = max(0, min(MAP_WIDTH, self.pos.x))
-		self.pos.y = max(0, min(MAP_HEIGHT, self.pos.y))
-		self.rect.center = self.pos
+    def update(self, keys):
+        self.vel = pygame.Vector2(0, 0)
+        if keys[pygame.K_w]: self.vel.y = -PLAYER_SPEED
+        if keys[pygame.K_s]: self.vel.y = PLAYER_SPEED
+        if keys[pygame.K_a]: self.vel.x = -PLAYER_SPEED
+        if keys[pygame.K_d]: self.vel.x = PLAYER_SPEED
+        self.pos += self.vel
+        self.pos.x = max(0, min(MAP_WIDTH, self.pos.x))
+        self.pos.y = max(0, min(MAP_HEIGHT, self.pos.y))
+        self.rect.center = self.pos
 
 class Enemy(pygame.sprite.Sprite):
-	def __init__(self, x, y):
-		super().__init__()
-		self.image = pygame.Surface((ENEMY_SIZE, ENEMY_SIZE))
-		self.image.fill((200, 50, 50))
-		self.rect = self.image.get_rect(center=(x, y))
-		self.pos = pygame.Vector2(x, y)
+    def __init__(self, x, y):
+        super().__init__()
+        self.image = pygame.Surface((ENEMY_SIZE, ENEMY_SIZE), pygame.SRCALPHA)
+        self.image.fill((200, 50, 50))
+        pygame.draw.rect(self.image, (0,0,0), self.image.get_rect(), 3)  # Schwarzer Rand
+        self.rect = self.image.get_rect(center=(x, y))
+        self.pos = pygame.Vector2(x, y)
 
-	def update(self, player_pos):
-		direction = (player_pos - self.pos).normalize() if player_pos != self.pos else pygame.Vector2(0, 0)
-		self.pos += direction * ENEMY_SPEED
-		self.rect.center = self.pos
+    def update(self, player_pos):
+        direction = (player_pos - self.pos).normalize() if player_pos != self.pos else pygame.Vector2(0, 0)
+        self.pos += direction * ENEMY_SPEED
+        self.rect.center = self.pos
 
 class Bullet(pygame.sprite.Sprite):
 	def __init__(self, x, y, dir):
@@ -67,11 +69,19 @@ class Bullet(pygame.sprite.Sprite):
 			self.kill()
 
 class Obstacle(pygame.sprite.Sprite):
-	def __init__(self, x, y, w, h, color):
-		super().__init__()
-		self.image = pygame.Surface((w, h))
-		self.image.fill(color)
-		self.rect = self.image.get_rect(center=(x, y))
+    def __init__(self, x, y, w, h, color):
+        super().__init__()
+        self.image = pygame.Surface((w, h), pygame.SRCALPHA)
+        self.image.fill(color)
+        # Muster für bessere Unterscheidung
+        if color == (34,139,34):  # Baum
+            pygame.draw.circle(self.image, (0,100,0), (w//2, h//2), min(w,h)//3)
+        elif color == (139,69,19):  # Stein
+            pygame.draw.ellipse(self.image, (160,82,45), [w//4, h//4, w//2, h//2])
+        elif color == (128,128,128):  # Busch
+            for i in range(3):
+                pygame.draw.circle(self.image, (0,255,0), (random.randint(0,w), random.randint(0,h)), min(w,h)//5, 1)
+        self.rect = self.image.get_rect(center=(x, y))
 
 # --- Map generieren ---
 obstacles = pygame.sprite.Group()
