@@ -21,26 +21,32 @@ clock = pygame.time.Clock()
 
 # --- Klassen ---
 class Player(pygame.sprite.Sprite):
-    def __init__(self, x, y):
-        super().__init__()
-        self.image = pygame.Surface((PLAYER_SIZE, PLAYER_SIZE), pygame.SRCALPHA)
-        self.image.fill((0, 200, 255))
-        pygame.draw.rect(self.image, (255,255,255), self.image.get_rect(), 3)  # Weißer Rand
-        self.rect = self.image.get_rect(center=(x, y))
-        self.pos = pygame.Vector2(x, y)
-        self.vel = pygame.Vector2(0, 0)
+	def __init__(self, x, y):
+		super().__init__()
+		self.image = pygame.Surface((PLAYER_SIZE, PLAYER_SIZE), pygame.SRCALPHA)
+		self.image.fill((0, 200, 255))
+		pygame.draw.rect(self.image, (255,255,255), self.image.get_rect(), 3)  # Weißer Rand
+		self.rect = self.image.get_rect(center=(x, y))
+		self.pos = pygame.Vector2(x, y)
+		self.vel = pygame.Vector2(0, 0)
 
-    def update(self, keys):
-        self.vel = pygame.Vector2(0, 0)
-        if keys[pygame.K_w]: self.vel.y = -PLAYER_SPEED
-        if keys[pygame.K_s]: self.vel.y = PLAYER_SPEED
-        if keys[pygame.K_a]: self.vel.x = -PLAYER_SPEED
-        if keys[pygame.K_d]: self.vel.x = PLAYER_SPEED
-		if keys[pygame.K_ESCAPE]: pygame.quit(); exit()
-        self.pos += self.vel
-        self.pos.x = max(0, min(MAP_WIDTH, self.pos.x))
-        self.pos.y = max(0, min(MAP_HEIGHT, self.pos.y))
-        self.rect.center = self.pos
+	def update(self, keys):
+		self.vel = pygame.Vector2(0, 0)
+		if keys[pygame.K_ESCAPE]:
+			pygame.quit()
+			exit()
+		if keys[pygame.K_w]:
+			self.vel.y = -PLAYER_SPEED
+		if keys[pygame.K_s]:
+			self.vel.y = PLAYER_SPEED
+		if keys[pygame.K_a]:
+			self.vel.x = -PLAYER_SPEED
+		if keys[pygame.K_d]:
+			self.vel.x = PLAYER_SPEED
+		self.pos += self.vel
+		self.pos.x = max(0, min(MAP_WIDTH, self.pos.x))
+		self.pos.y = max(0, min(MAP_HEIGHT, self.pos.y))
+		self.rect.center = self.pos
 
 class Enemy(pygame.sprite.Sprite):
 	def __init__(self, x, y, fast=False):
