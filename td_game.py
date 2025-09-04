@@ -2,7 +2,7 @@ import pygame
 import random
 
 # --- Konstanten ---
-WIDTH, HEIGHT = 1440, 900  # Fenstergröße
+WIDTH, HEIGHT = 1550, 975  # Fenstergröße
 MAP_WIDTH, MAP_HEIGHT = 3000, 2000  # Große Map
 PLAYER_SIZE = 40
 ENEMY_SIZE = 40
