@@ -2,11 +2,7 @@ import pygame
 import random
 
 # --- Konstanten ---
-<<<<<<< HEAD
-WIDTH, HEIGHT = 1280, 720  # Fenstergröße
-=======
 WIDTH, HEIGHT = 1550, 975  # Fenstergröße
->>>>>>> 1d36bf06fc13fec62f3cf5502fbaa687bf203e6d
 MAP_WIDTH, MAP_HEIGHT = 3000, 2000  # Große Map
 NUM_OBSTACLES = 30
 
