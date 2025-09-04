@@ -2,24 +2,27 @@ import pygame
 import random
 
 # --- Konstanten ---
-WIDTH, HEIGHT = 1920, 1080  # Fenstergröße
+WIDTH, HEIGHT = 1280, 720  # Fenstergröße
 MAP_WIDTH, MAP_HEIGHT = 3000, 2000  # Große Map
+NUM_OBSTACLES = 30
+
+# --- Pygame Initialisierung ---
+pygame.init()
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("2D Shooter")
+clock = pygame.time.Clock()
+try:
+	FONT = pygame.font.SysFont("Arial", 36)
+except:
+	FONT = pygame.font.Font(None, 36)
+
 PLAYER_SIZE = 40
+PLAYER_SPEED = 4
 ENEMY_SIZE = 40
-PLAYER_SPEED = 3
-ENEMY_SPEED = PLAYER_SPEED
+ENEMY_SPEED = 4
 BULLET_SPEED = 12
 FPS = 60
-NUM_OBSTACLES = 120
 
-
-# --- Initialisierung ---
-pygame.init()
-FONT = pygame.font.SysFont('Arial', 32)
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-clock = pygame.time.Clock()
-
-# --- Klassen ---
 class Player(pygame.sprite.Sprite):
 	def __init__(self, x, y):
 		super().__init__()
@@ -250,15 +253,20 @@ while running:
 			screen.blit(bullet.image, bullet.rect.move(-cam_offset.x, -cam_offset.y))
 		screen.blit(player.image, player.rect.move(-cam_offset.x, -cam_offset.y))
 
-		# HUD: Highscore, Level, Leben, verbleibende Gegner
-		score_text = FONT.render(f"Score: {score}", True, (255,255,0))
-		screen.blit(score_text, (20, 20))
-		level_text = FONT.render(f"Level: {level}", True, (0,255,255))
-		screen.blit(level_text, (20, 60))
-		lives_text = FONT.render(f"Leben: {lives}", True, (255,0,0))
-		screen.blit(lives_text, (20, 100))
-		left_text = FONT.render(f"Noch: {max(0, level_targets[min(level-1, len(level_targets)-1)]-level_kills)}", True, (255,255,255))
-		screen.blit(left_text, (20, 140))
+		# HUD: Highscore, Level, Leben, verbleibende Gegner (mit Schatten)
+		def draw_hud():
+			hud_items = [
+				(f"Score: {score}", (255,255,0), 20),
+				(f"Level: {level}", (0,255,255), 60),
+				(f"Leben: {lives}", (255,0,0), 100),
+				(f"Noch: {max(0, level_targets[min(level-1, len(level_targets)-1)]-level_kills)}", (255,255,255), 140)
+			]
+			for text, color, y in hud_items:
+				txt_shadow = FONT.render(text, True, (0,0,0))
+				screen.blit(txt_shadow, (22, y+2))
+				txt = FONT.render(text, True, color)
+				screen.blit(txt, (20, y))
+		draw_hud()
 
 		# Levelanzeige (groß, mittig)
 		if show_level and now - level_show_ticks < show_level_duration:
@@ -277,11 +285,26 @@ while running:
 	else:
 		# --- Game Over Screen ---
 		screen.fill((30, 30, 30))
+		# HUD oben links auch im Game Over
+		def draw_hud():
+			hud_items = [
+				(f"Score: {score}", (255,255,0), 20),
+				(f"Level: {level}", (0,255,255), 60),
+				(f"Leben: {lives}", (255,0,0), 100),
+				(f"Noch: {max(0, level_targets[min(level-1, len(level_targets)-1)]-level_kills)}", (255,255,255), 140)
+			]
+			for text, color, y in hud_items:
+				txt_shadow = FONT.render(text, True, (0,0,0))
+				screen.blit(txt_shadow, (22, y+2))
+				txt = FONT.render(text, True, color)
+				screen.blit(txt, (20, y))
+		draw_hud()
+		# Game Over Text und Buttons
 		over_text = FONT.render("Du bist gestorben!", True, (255,0,0))
 		rect = over_text.get_rect(center=(WIDTH//2, HEIGHT//2-60))
 		screen.blit(over_text, rect)
-		score_text = FONT.render(f"Score: {score}", True, (255,255,0))
-		screen.blit(score_text, (WIDTH//2-80, HEIGHT//2))
+		score_text_center = FONT.render(f"Score: {score}", True, (255,255,0))
+		screen.blit(score_text_center, (WIDTH//2-80, HEIGHT//2))
 		retry_btn = pygame.Rect(WIDTH//2-120, HEIGHT//2+60, 100, 50)
 		quit_btn = pygame.Rect(WIDTH//2+20, HEIGHT//2+60, 100, 50)
 		draw_button(retry_btn, "Neu versuchen")
