@@ -2,7 +2,7 @@ import pygame
 import random
 
 # --- Konstanten ---
-WIDTH, HEIGHT = 1200, 800  # Fenstergröße
+WIDTH, HEIGHT = 1920, 1080  # Fenstergröße
 MAP_WIDTH, MAP_HEIGHT = 3000, 2000  # Große Map
 PLAYER_SIZE = 40
 ENEMY_SIZE = 40
@@ -36,6 +36,7 @@ class Player(pygame.sprite.Sprite):
         if keys[pygame.K_s]: self.vel.y = PLAYER_SPEED
         if keys[pygame.K_a]: self.vel.x = -PLAYER_SPEED
         if keys[pygame.K_d]: self.vel.x = PLAYER_SPEED
+		if keys[pygame.K_ESCAPE]: pygame.quit(); exit()
         self.pos += self.vel
         self.pos.x = max(0, min(MAP_WIDTH, self.pos.x))
         self.pos.y = max(0, min(MAP_HEIGHT, self.pos.y))
