@@ -7,7 +7,7 @@ MAP_WIDTH, MAP_HEIGHT = 3000, 2000  # Große Map
 PLAYER_SIZE = 40
 ENEMY_SIZE = 40
 PLAYER_SPEED = 3
-ENEMY_SPEED = 2
+ENEMY_SPEED = PLAYER_SPEED
 BULLET_SPEED = 12
 FPS = 60
 NUM_OBSTACLES = 120
@@ -49,11 +49,11 @@ class Enemy(pygame.sprite.Sprite):
 		if fast:
 			self.image.fill((255, 140, 0))  # Orange für schnellen Gegner
 			pygame.draw.rect(self.image, (0,0,0), self.image.get_rect(), 3)
-			self.speed = ENEMY_SPEED * 1.4
+			self.speed = PLAYER_SPEED * 1.25
 		else:
 			self.image.fill((200, 50, 50))
 			pygame.draw.rect(self.image, (0,0,0), self.image.get_rect(), 3)
-			self.speed = ENEMY_SPEED
+			self.speed = PLAYER_SPEED
 		self.rect = self.image.get_rect(center=(x, y))
 		self.pos = pygame.Vector2(x, y)
 
@@ -108,15 +108,17 @@ player = Player(MAP_WIDTH//2, MAP_HEIGHT//2)
 enemies = pygame.sprite.Group()
 bullets = pygame.sprite.Group()
 
+
 # --- Highscore, Level, Leben ---
 score = 0
 level = 1
-level_time = [20, 30, 40, 50, 60]  # Sekunden pro Level
-level_start_ticks = pygame.time.get_ticks()
+level_targets = [10, 20, 30, 40, 50]  # Gegner pro Level
+level_kills = 0
 level_show_ticks = pygame.time.get_ticks()
 show_level = True
 show_level_duration = 2000  # ms
 lives = 3
+level_spawned = 0
 
 
 # --- Gegner-Spawning ---
@@ -133,100 +135,151 @@ def get_camera_offset(player):
 	offset_y = max(0, min(MAP_HEIGHT-HEIGHT, offset_y))
 	return pygame.Vector2(offset_x, offset_y)
 
-# --- Hauptloop ---
+
+
+# --- Game-Over-Logik ---
+def reset_game():
+	global score, level, level_kills, level_spawned, lives, enemies, bullets, player, show_level, level_show_ticks
+	score = 0
+	level = 1
+	level_kills = 0
+	level_spawned = 0
+	lives = 3
+	enemies.empty()
+	bullets.empty()
+	player = Player(MAP_WIDTH//2, MAP_HEIGHT//2)
+	show_level = True
+	level_show_ticks = pygame.time.get_ticks()
+
+def draw_button(rect, text):
+	pygame.draw.rect(screen, (80,80,80), rect)
+	pygame.draw.rect(screen, (255,255,255), rect, 3)
+	txt = FONT.render(text, True, (255,255,255))
+	txt_rect = txt.get_rect(center=rect.center)
+	screen.blit(txt, txt_rect)
+
 running = True
+game_over = False
 while running:
 	clock.tick(FPS)
 	now = pygame.time.get_ticks()
 	seconds_since_start = (now - game_start_time) / 1000
-	seconds_in_level = (now - level_start_ticks) / 1000
 
 	for event in pygame.event.get():
 		if event.type == pygame.QUIT:
 			running = False
-		if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-			mx, my = pygame.mouse.get_pos()
-			cam_offset = get_camera_offset(player)
-			target = pygame.Vector2(mx + cam_offset.x, my + cam_offset.y)
-			direction = (target - player.pos).normalize()
-			bullets.add(Bullet(player.pos.x, player.pos.y, direction))
+		if not game_over:
+			if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+				mx, my = pygame.mouse.get_pos()
+				cam_offset = get_camera_offset(player)
+				target = pygame.Vector2(mx + cam_offset.x, my + cam_offset.y)
+				direction = (target - player.pos).normalize()
+				bullets.add(Bullet(player.pos.x, player.pos.y, direction))
+		else:
+			if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+				mx, my = pygame.mouse.get_pos()
+				if retry_btn.collidepoint(mx, my):
+					reset_game()
+					game_over = False
+					game_start_time = pygame.time.get_ticks()
+				if quit_btn.collidepoint(mx, my):
+					running = False
 
-	# Levelwechsel
-	if seconds_in_level > level_time[min(level-1, len(level_time)-1)]:
-		level += 1
-		level_start_ticks = now
-		show_level = True
-		level_show_ticks = now
-		enemies.empty()
+	if not game_over:
+		# Levelwechsel: Nur wenn genug Gegner besiegt
+		if level_kills >= level_targets[min(level-1, len(level_targets)-1)]:
+			level += 1
+			level_kills = 0
+			level_spawned = 0
+			show_level = True
+			level_show_ticks = now
+			enemies.empty()
 
-	# Levelanzeige
-	if show_level and now - level_show_ticks < show_level_duration:
-		pass
+		# Levelanzeige
+		if show_level and now - level_show_ticks < show_level_duration:
+			pass
+		else:
+			show_level = False
+
+		# Gegner-Spawning nach 3 Sekunden, dann alle SPAWN_INTERVAL Sekunden, aber nur bis zur Zielanzahl
+		if seconds_since_start > SPAWN_DELAY:
+			if (level_spawned < level_targets[min(level-1, len(level_targets)-1)]) and (now - last_spawn_time > SPAWN_INTERVAL * 1000):
+				ex = random.randint(0, MAP_WIDTH)
+				ey = random.randint(0, MAP_HEIGHT)
+				fast = level >= 3 and random.random() < 0.3  # Ab Level 3, 30% schnell
+				enemies.add(Enemy(ex, ey, fast=fast))
+				last_spawn_time = now
+				level_spawned += 1
+
+		keys = pygame.key.get_pressed()
+		player.update(keys)
+		enemies.update(player.pos)
+		bullets.update()
+
+		# Kollisionen
+		for bullet, hit_enemies in pygame.sprite.groupcollide(bullets, enemies, True, True).items():
+			for hit_enemy in hit_enemies:
+				if getattr(hit_enemy, 'speed', ENEMY_SPEED) > ENEMY_SPEED:
+					score += 2
+				else:
+					score += 1
+				level_kills += 1
+		hit_enemy = pygame.sprite.spritecollideany(player, enemies)
+		if hit_enemy:
+			lives -= 1
+			hit_enemy.kill()
+			if lives <= 0:
+				game_over = True
+
+		# Kamera Offset
+		cam_offset = get_camera_offset(player)
+
+		# --- Zeichnen ---
+		screen.fill((30, 30, 30))
+		for obs in obstacles:
+			screen.blit(obs.image, obs.rect.move(-cam_offset.x, -cam_offset.y))
+		for enemy in enemies:
+			screen.blit(enemy.image, enemy.rect.move(-cam_offset.x, -cam_offset.y))
+		for bullet in bullets:
+			screen.blit(bullet.image, bullet.rect.move(-cam_offset.x, -cam_offset.y))
+		screen.blit(player.image, player.rect.move(-cam_offset.x, -cam_offset.y))
+
+		# HUD: Highscore, Level, Leben, verbleibende Gegner
+		score_text = FONT.render(f"Score: {score}", True, (255,255,0))
+		screen.blit(score_text, (20, 20))
+		level_text = FONT.render(f"Level: {level}", True, (0,255,255))
+		screen.blit(level_text, (20, 60))
+		lives_text = FONT.render(f"Leben: {lives}", True, (255,0,0))
+		screen.blit(lives_text, (20, 100))
+		left_text = FONT.render(f"Noch: {max(0, level_targets[min(level-1, len(level_targets)-1)]-level_kills)}", True, (255,255,255))
+		screen.blit(left_text, (20, 140))
+
+		# Levelanzeige (groß, mittig)
+		if show_level and now - level_show_ticks < show_level_duration:
+			overlay = FONT.render(f"Level {level} startet!", True, (255,255,255))
+			rect = overlay.get_rect(center=(WIDTH//2, HEIGHT//2))
+			screen.blit(overlay, rect)
+
+		# Minimap
+		minimap = pygame.Surface((200, 133))
+		minimap.fill((50,50,50))
+		px = int(player.pos.x / MAP_WIDTH * 200)
+		py = int(player.pos.y / MAP_HEIGHT * 133)
+		pygame.draw.circle(minimap, (0,200,255), (px, py), 5)
+		screen.blit(minimap, (WIDTH-210, 10))
+
 	else:
-		show_level = False
-
-	# Gegner-Spawning nach 3 Sekunden, dann alle SPAWN_INTERVAL Sekunden
-	if seconds_since_start > SPAWN_DELAY:
-		if now - last_spawn_time > SPAWN_INTERVAL * 1000:
-			ex = random.randint(0, MAP_WIDTH)
-			ey = random.randint(0, MAP_HEIGHT)
-			fast = level >= 3 and random.random() < 0.3  # Ab Level 3, 30% schnell
-			enemies.add(Enemy(ex, ey, fast=fast))
-			last_spawn_time = now
-
-	keys = pygame.key.get_pressed()
-	player.update(keys)
-	enemies.update(player.pos)
-	bullets.update()
-
-	# Kollisionen
-	for bullet, hit_enemies in pygame.sprite.groupcollide(bullets, enemies, True, True).items():
-		for hit_enemy in hit_enemies:
-			if getattr(hit_enemy, 'speed', ENEMY_SPEED) > ENEMY_SPEED:
-				score += 2
-			else:
-				score += 1
-	hit_enemy = pygame.sprite.spritecollideany(player, enemies)
-	if hit_enemy:
-		lives -= 1
-		hit_enemy.kill()
-		if lives <= 0:
-			running = False  # Game Over
-
-	# Kamera Offset
-	cam_offset = get_camera_offset(player)
-
-	# --- Zeichnen ---
-	screen.fill((30, 30, 30))
-	for obs in obstacles:
-		screen.blit(obs.image, obs.rect.move(-cam_offset.x, -cam_offset.y))
-	for enemy in enemies:
-		screen.blit(enemy.image, enemy.rect.move(-cam_offset.x, -cam_offset.y))
-	for bullet in bullets:
-		screen.blit(bullet.image, bullet.rect.move(-cam_offset.x, -cam_offset.y))
-	screen.blit(player.image, player.rect.move(-cam_offset.x, -cam_offset.y))
-
-	# HUD: Highscore, Level, Leben
-	score_text = FONT.render(f"Score: {score}", True, (255,255,0))
-	screen.blit(score_text, (20, 20))
-	level_text = FONT.render(f"Level: {level}", True, (0,255,255))
-	screen.blit(level_text, (20, 60))
-	lives_text = FONT.render(f"Leben: {lives}", True, (255,0,0))
-	screen.blit(lives_text, (20, 100))
-
-	# Levelanzeige (groß, mittig)
-	if show_level and now - level_show_ticks < show_level_duration:
-		overlay = FONT.render(f"Level {level} startet!", True, (255,255,255))
-		rect = overlay.get_rect(center=(WIDTH//2, HEIGHT//2))
-		screen.blit(overlay, rect)
-
-	# Minimap
-	minimap = pygame.Surface((200, 133))
-	minimap.fill((50,50,50))
-	px = int(player.pos.x / MAP_WIDTH * 200)
-	py = int(player.pos.y / MAP_HEIGHT * 133)
-	pygame.draw.circle(minimap, (0,200,255), (px, py), 5)
-	screen.blit(minimap, (WIDTH-210, 10))
+		# --- Game Over Screen ---
+		screen.fill((30, 30, 30))
+		over_text = FONT.render("Du bist gestorben!", True, (255,0,0))
+		rect = over_text.get_rect(center=(WIDTH//2, HEIGHT//2-60))
+		screen.blit(over_text, rect)
+		score_text = FONT.render(f"Score: {score}", True, (255,255,0))
+		screen.blit(score_text, (WIDTH//2-80, HEIGHT//2))
+		retry_btn = pygame.Rect(WIDTH//2-120, HEIGHT//2+60, 100, 50)
+		quit_btn = pygame.Rect(WIDTH//2+20, HEIGHT//2+60, 100, 50)
+		draw_button(retry_btn, "Neu versuchen")
+		draw_button(quit_btn, "Beenden")
 
 	pygame.display.flip()
 
