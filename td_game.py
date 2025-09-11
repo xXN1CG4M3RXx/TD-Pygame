@@ -1,5 +1,7 @@
+
 import pygame
 import random
+import math
 
 # --- Konstanten ---
 WIDTH, HEIGHT = 1550, 975  # Fenstergröße
@@ -49,8 +51,13 @@ class Player(pygame.sprite.Sprite):
 		if keys[pygame.K_d]:
 			self.vel.x = PLAYER_SPEED
 		self.pos += self.vel
-		self.pos.x = max(0, min(MAP_WIDTH, self.pos.x))
-		self.pos.y = max(0, min(MAP_HEIGHT, self.pos.y))
+		wall_thickness = 30
+		min_x = wall_thickness + PLAYER_SIZE//2
+		max_x = MAP_WIDTH - wall_thickness - PLAYER_SIZE//2
+		min_y = wall_thickness + PLAYER_SIZE//2
+		max_y = MAP_HEIGHT - wall_thickness - PLAYER_SIZE//2
+		self.pos.x = max(min_x, min(max_x, self.pos.x))
+		self.pos.y = max(min_y, min(max_y, self.pos.y))
 		self.rect.center = self.pos
 
 class Enemy(pygame.sprite.Sprite):
@@ -241,8 +248,12 @@ while running:
 		# Gegner-Spawning nach 3 Sekunden, dann alle SPAWN_INTERVAL Sekunden, aber nur bis zur Zielanzahl
 		if seconds_since_start > SPAWN_DELAY:
 			if (level_spawned < level_targets[min(level-1, len(level_targets)-1)]) and (now - last_spawn_time > SPAWN_INTERVAL * 1000):
-				ex = random.randint(0, MAP_WIDTH)
-				ey = random.randint(0, MAP_HEIGHT)
+				# Gegner nicht zu nah am Spieler spawnen
+				while True:
+					ex = random.randint(0, MAP_WIDTH)
+					ey = random.randint(0, MAP_HEIGHT)
+					if pygame.Vector2(ex, ey).distance_to(player.pos) > PLAYER_SIZE * 6:
+						break
 				fast = level >= 3 and random.random() < 0.3  # Ab Level 3, 30% schnell
 				# 15% Exploder ab Level 2
 				if level >= 2 and random.random() < 0.15:
@@ -305,7 +316,23 @@ while running:
 		cam_offset = get_camera_offset(player)
 
 		# --- Zeichnen ---
-		screen.fill((30, 30, 30))
+		# Hintergrund als schönes Grasfeld
+		screen.fill((60, 180, 75))  # Sattes Grün für Gras
+		# Bäume und Sträucher: Positionen werden einmalig erzeugt
+		if 'tree_positions' not in globals():
+			global tree_positions, bush_positions
+			tree_positions = [(random.randint(0, MAP_WIDTH), random.randint(0, MAP_HEIGHT)) for _ in range(40)]
+			bush_positions = [(random.randint(0, MAP_WIDTH), random.randint(0, MAP_HEIGHT)) for _ in range(60)]
+		for tx, ty in tree_positions:
+			tree_pos = (int(tx - cam_offset.x), int(ty - cam_offset.y))
+			pygame.draw.rect(screen, (139,69,19), (tree_pos[0]-13, tree_pos[1]+25, 25, 50))
+			pygame.draw.circle(screen, (34,139,34), (tree_pos[0], tree_pos[1]), int(22*2.5))
+			pygame.draw.circle(screen, (0,100,0), (tree_pos[0]+int(8*2.5), tree_pos[1]-int(8*2.5)), int(12*2.5))
+			pygame.draw.circle(screen, (0,100,0), (tree_pos[0]-int(8*2.5), tree_pos[1]-int(8*2.5)), int(12*2.5))
+		for sx, sy in bush_positions:
+			bush_pos = (int(sx - cam_offset.x), int(sy - cam_offset.y))
+			pygame.draw.ellipse(screen, (0,128,0), (bush_pos[0]-10, bush_pos[1]-5, 20, 10))
+			pygame.draw.ellipse(screen, (34,139,34), (bush_pos[0]-7, bush_pos[1]-3, 14, 7))
 		for obs in obstacles:
 			screen.blit(obs.image, obs.rect.move(-cam_offset.x, -cam_offset.y))
 		for enemy in enemies:
@@ -331,7 +358,23 @@ while running:
 				screen.blit(txt_shadow, (22, y+2))
 				txt = FONT.render(text, True, color)
 				screen.blit(txt, (20, y))
+
 		draw_hud()
+		   # Draw walls only if the camera is at the map edge
+		   wall_thickness = 30
+		   cam_offset = get_camera_offset(player)
+		   # Top wall
+		   if cam_offset.y <= 0:
+			   pygame.draw.rect(screen, (100,100,100), (0, 0, WIDTH, wall_thickness))
+		   # Bottom wall
+		   if cam_offset.y >= MAP_HEIGHT-HEIGHT:
+			   pygame.draw.rect(screen, (100,100,100), (0, HEIGHT-wall_thickness, WIDTH, wall_thickness))
+		   # Left wall
+		   if cam_offset.x <= 0:
+			   pygame.draw.rect(screen, (100,100,100), (0, 0, wall_thickness, HEIGHT))
+		   # Right wall
+		   if cam_offset.x >= MAP_WIDTH-WIDTH:
+			   pygame.draw.rect(screen, (100,100,100), (WIDTH-wall_thickness, 0, wall_thickness, HEIGHT))
 
 		# Levelanzeige (groß, mittig)
 		if show_level and now - level_show_ticks < show_level_duration:
