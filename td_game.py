@@ -360,21 +360,21 @@ while running:
 				screen.blit(txt, (20, y))
 
 		draw_hud()
-		   # Draw walls only if the camera is at the map edge
-		   wall_thickness = 30
-		   cam_offset = get_camera_offset(player)
-		   # Top wall
-		   if cam_offset.y <= 0:
-			   pygame.draw.rect(screen, (100,100,100), (0, 0, WIDTH, wall_thickness))
-		   # Bottom wall
-		   if cam_offset.y >= MAP_HEIGHT-HEIGHT:
-			   pygame.draw.rect(screen, (100,100,100), (0, HEIGHT-wall_thickness, WIDTH, wall_thickness))
-		   # Left wall
-		   if cam_offset.x <= 0:
-			   pygame.draw.rect(screen, (100,100,100), (0, 0, wall_thickness, HEIGHT))
-		   # Right wall
-		   if cam_offset.x >= MAP_WIDTH-WIDTH:
-			   pygame.draw.rect(screen, (100,100,100), (WIDTH-wall_thickness, 0, wall_thickness, HEIGHT))
+		# Draw walls only if the camera is at the map edge
+		wall_thickness = 30
+		cam_offset = get_camera_offset(player)
+		# Top wall
+		if cam_offset.y <= 0:
+			pygame.draw.rect(screen, (100,100,100), (0, 0, WIDTH, wall_thickness))
+		# Bottom wall
+		if cam_offset.y >= MAP_HEIGHT-HEIGHT:
+			pygame.draw.rect(screen, (100,100,100), (0, HEIGHT-wall_thickness, WIDTH, wall_thickness))
+		# Left wall
+		if cam_offset.x <= 0:
+			pygame.draw.rect(screen, (100,100,100), (0, 0, wall_thickness, HEIGHT))
+		# Right wall
+		if cam_offset.x >= MAP_WIDTH-WIDTH:
+			pygame.draw.rect(screen, (100,100,100), (WIDTH-wall_thickness, 0, wall_thickness, HEIGHT))
 
 		# Levelanzeige (groß, mittig)
 		if show_level and now - level_show_ticks < show_level_duration:
