@@ -4,7 +4,7 @@ import random
 import math
 
 # --- Konstanten ---
-WIDTH, HEIGHT = 1280, 1024  # Fenstergröße
+WIDTH, HEIGHT = 1550, 900  # Fenstergröße
 MAP_WIDTH, MAP_HEIGHT = 3000, 2000  # Große Map
 NUM_OBSTACLES = 30
 MAP_WIDTH, MAP_HEIGHT = 3000, 2000  # Große Map
