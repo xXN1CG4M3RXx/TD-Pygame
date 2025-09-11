@@ -1,43 +1,10 @@
-<<<<<<< HEAD
-
 import pygame
 import random
-
-# --- Konstanten ---
-WIDTH, HEIGHT = 1280, 720  # Fenstergröße
-=======
-import pygame
-import random
-
-class ExploderEnemy(pygame.sprite.Sprite):
-	def __init__(self, x, y):
-		super().__init__()
-		self.image = pygame.Surface((ENEMY_SIZE, ENEMY_SIZE), pygame.SRCALPHA)
-		self.image.fill((255, 0, 0))  # Rot für Exploder
-		pygame.draw.circle(self.image, (255,255,0), (ENEMY_SIZE//2, ENEMY_SIZE//2), ENEMY_SIZE//2, 3)
-		self.rect = self.image.get_rect(center=(x, y))
-		self.pos = pygame.Vector2(x, y)
-		self.speed = PLAYER_SPEED * 0.8
-		self.exploded = False
-		self.explode_timer = 0
-
-	def update(self, player_pos):
-		if self.exploded:
-			# Explosion dauert 500ms
-			if pygame.time.get_ticks() - self.explode_timer > 500:
-				self.kill()
-			return
-		direction = (player_pos - self.pos).normalize() if player_pos != self.pos else pygame.Vector2(0, 0)
-		self.pos += direction * self.speed
-		self.rect.center = self.pos
-		# Explodiere, wenn zu nah am Spieler
-		if self.pos.distance_to(player_pos) < ENEMY_SIZE:
-			self.exploded = True
-			self.explode_timer = pygame.time.get_ticks()
 
 # --- Konstanten ---
 WIDTH, HEIGHT = 1550, 975  # Fenstergröße
->>>>>>> 0f5a28d10d0dfbd3beb0e8230a88c4bdd2f27600
+MAP_WIDTH, MAP_HEIGHT = 3000, 2000  # Große Map
+NUM_OBSTACLES = 30
 MAP_WIDTH, MAP_HEIGHT = 3000, 2000  # Große Map
 NUM_OBSTACLES = 30
 
