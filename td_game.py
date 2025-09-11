@@ -1,3 +1,6 @@
+import pygame
+import random
+
 class ExploderEnemy(pygame.sprite.Sprite):
 	def __init__(self, x, y):
 		super().__init__()
@@ -23,8 +26,6 @@ class ExploderEnemy(pygame.sprite.Sprite):
 		if self.pos.distance_to(player_pos) < ENEMY_SIZE:
 			self.exploded = True
 			self.explode_timer = pygame.time.get_ticks()
-import pygame
-import random
 
 # --- Konstanten ---
 WIDTH, HEIGHT = 1550, 975  # Fenstergröße
