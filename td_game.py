@@ -1,12 +1,33 @@
+class ExploderEnemy(pygame.sprite.Sprite):
+	def __init__(self, x, y):
+		super().__init__()
+		self.image = pygame.Surface((ENEMY_SIZE, ENEMY_SIZE), pygame.SRCALPHA)
+		self.image.fill((255, 0, 0))  # Rot für Exploder
+		pygame.draw.circle(self.image, (255,255,0), (ENEMY_SIZE//2, ENEMY_SIZE//2), ENEMY_SIZE//2, 3)
+		self.rect = self.image.get_rect(center=(x, y))
+		self.pos = pygame.Vector2(x, y)
+		self.speed = PLAYER_SPEED * 0.8
+		self.exploded = False
+		self.explode_timer = 0
+
+	def update(self, player_pos):
+		if self.exploded:
+			# Explosion dauert 500ms
+			if pygame.time.get_ticks() - self.explode_timer > 500:
+				self.kill()
+			return
+		direction = (player_pos - self.pos).normalize() if player_pos != self.pos else pygame.Vector2(0, 0)
+		self.pos += direction * self.speed
+		self.rect.center = self.pos
+		# Explodiere, wenn zu nah am Spieler
+		if self.pos.distance_to(player_pos) < ENEMY_SIZE:
+			self.exploded = True
+			self.explode_timer = pygame.time.get_ticks()
 import pygame
 import random
 
 # --- Konstanten ---
-<<<<<<< HEAD
 WIDTH, HEIGHT = 1280, 720  # Fenstergröße
-=======
-WIDTH, HEIGHT = 1550, 975  # Fenstergröße
->>>>>>> 1d36bf06fc13fec62f3cf5502fbaa687bf203e6d
 MAP_WIDTH, MAP_HEIGHT = 3000, 2000  # Große Map
 NUM_OBSTACLES = 30
 
@@ -220,13 +241,18 @@ while running:
 				ex = random.randint(0, MAP_WIDTH)
 				ey = random.randint(0, MAP_HEIGHT)
 				fast = level >= 3 and random.random() < 0.3  # Ab Level 3, 30% schnell
-				enemies.add(Enemy(ex, ey, fast=fast))
+				# 15% Exploder ab Level 2
+				if level >= 2 and random.random() < 0.15:
+					enemies.add(ExploderEnemy(ex, ey))
+				else:
+					enemies.add(Enemy(ex, ey, fast=fast))
 				last_spawn_time = now
 				level_spawned += 1
 
 		keys = pygame.key.get_pressed()
 		player.update(keys)
-		enemies.update(player.pos)
+		for enemy in enemies:
+			enemy.update(player.pos)
 		bullets.update()
 
 		# Kollisionen
@@ -239,10 +265,21 @@ while running:
 				level_kills += 1
 		hit_enemy = pygame.sprite.spritecollideany(player, enemies)
 		if hit_enemy:
-			lives -= 1
-			hit_enemy.kill()
-			if lives <= 0:
-				game_over = True
+			if hasattr(hit_enemy, 'exploded') and hit_enemy.exploded:
+				# Exploder hat explodiert, Leben abziehen
+				lives -= 1
+				hit_enemy.kill()
+				if lives <= 0:
+					game_over = True
+			elif isinstance(hit_enemy, ExploderEnemy):
+				# Exploder explodiert, aber noch nicht animiert
+				hit_enemy.exploded = True
+				hit_enemy.explode_timer = pygame.time.get_ticks()
+			else:
+				lives -= 1
+				hit_enemy.kill()
+				if lives <= 0:
+					game_over = True
 
 		# Kamera Offset
 		cam_offset = get_camera_offset(player)
@@ -252,6 +289,10 @@ while running:
 		for obs in obstacles:
 			screen.blit(obs.image, obs.rect.move(-cam_offset.x, -cam_offset.y))
 		for enemy in enemies:
+			# Explosionsanimation für ExploderEnemy
+			if hasattr(enemy, 'exploded') and enemy.exploded:
+				explosion_pos = enemy.rect.move(-cam_offset.x, -cam_offset.y).center
+				pygame.draw.circle(screen, (255,0,0), explosion_pos, ENEMY_SIZE*2)
 			screen.blit(enemy.image, enemy.rect.move(-cam_offset.x, -cam_offset.y))
 		for bullet in bullets:
 			screen.blit(bullet.image, bullet.rect.move(-cam_offset.x, -cam_offset.y))
