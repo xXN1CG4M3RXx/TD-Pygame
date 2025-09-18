@@ -63,12 +63,12 @@ class Player(pygame.sprite.Sprite):
 class Enemy(pygame.sprite.Sprite):
 	def __init__(self, x, y, fast=False):
 		super().__init__()
-		self.image = pygame.Surface((ENEMY_SIZE, ENEMY_SIZE), pygame.SRCALPHA)
 		if fast:
-			self.image.fill((255, 140, 0))  # Orange für schnellen Gegner
-			pygame.draw.rect(self.image, (0,0,0), self.image.get_rect(), 3)
+			self.image = pygame.image.load("HerbstSchnell.png").convert_alpha()
+			#pygame.draw.rect(self.image, (0,0,0), self.image.get_rect(), 3)
 			self.speed = PLAYER_SPEED * 1.25
 		else:
+			self.image = pygame.Surface((ENEMY_SIZE, ENEMY_SIZE), pygame.SRCALPHA)
 			self.image.fill((200, 50, 50))
 			pygame.draw.rect(self.image, (0,0,0), self.image.get_rect(), 3)
 			self.speed = PLAYER_SPEED
